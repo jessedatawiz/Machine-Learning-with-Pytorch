@@ -53,6 +53,8 @@ class Perceptron:
         rgen = np.random.RandomState(self.random_state)
         # pesos levemente diferentes de zero
         self.w_ = rgen.normal(loc=0.0, scale=0.01, size=X.shape[1])
+        self.b_ = float(0.1)
+        self.errors_ = []
 
         for _ in range(self.n_iter):
             errors = 0
@@ -60,9 +62,9 @@ class Perceptron:
             for xi, target in zip(X, y):
                 updates = self.eta * (target - self.predict(xi))
                 # vetor multiplicando outro vetor
-                self.w_ += update * xi
-                self.b_ += update
-                errors += int(update != 0.0)
+                self.w_ += updates * xi
+                self.b_ += updates
+                errors += int(updates != 0.0)
             self.errors_.append(errors)
         
         return self

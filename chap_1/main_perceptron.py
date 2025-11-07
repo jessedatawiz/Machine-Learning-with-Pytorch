@@ -39,7 +39,7 @@ plt.savefig('output.png', dpi=300, bbox_inches='tight')
 print('Plot saved to output.png')
 
 # iniciar a classe Perceptron
-ppn = Perceptron(eta=0.1, n_iter=10)
+ppn = Perceptron(eta=0.0001, n_iter=50)
 
 # treinar o modelo
 ppn.fit(X, y)
@@ -50,3 +50,4 @@ plt.plot(range(1, len(ppn.errors_) + 1), ppn.errors_, marker='^')
 plt.xlabel('Epochs')
 plt.ylabel('Number of misclassifications')
 plt.savefig('errors_plot.png', dpi=300, bbox_inches='tight')
+

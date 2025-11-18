@@ -1,6 +1,6 @@
 import numpy as np
 
-class Perceptron:
+class AdalineGD:
     """ Classficador Perceptron
 
     Parametros

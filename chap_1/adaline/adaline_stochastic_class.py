@@ -1,7 +1,7 @@
 import numpy as np
 
 class AdalineSGD:
-    """Classificador AdalineGD (Adaptive Linear Neuron) treinado por gradiente descendente em batch.
+    """Classificador AdalineGD (Adaptive Linear Neuron) treinado por gradiente descendente estocástico.
 
     Parâmetros
     ----------
@@ -25,7 +25,7 @@ class AdalineSGD:
 
     Observações
     ----------
-    A função de ativação é linear (identidade). O ajuste é feito por gradiente descendente em batch,
+    A função de ativação é linear (identidade). O ajuste é feito por gradiente descendente estocástico,
     minimizando o erro quadrático médio.
     """
 
@@ -38,12 +38,11 @@ class AdalineSGD:
         self.random_state = random_state
     
     # define a funcao fit para o dataset de treinamento
-    def fit(self, X: np.array, y:np.array) -> 'Perceptron':
+    def fit(self, X: np.array, y:np.array) -> 'AdalineSGD':
         """ ajustar os dados para o treinamento.
 
         Parametros:
         -----------
-        # note como podem ser mais de um vetor pela chave {}
         X : {tipo-vetor}, shape = [n_examples, n_features]
             Vetores de treinamento, onde n_examples eh o numero de examples e 
             n_features eh o numero de features
@@ -55,7 +54,6 @@ class AdalineSGD:
         self : object
 
         """
-
         self._initialize_weights(X.shape[1])
         self.losses_ = []
 
@@ -66,28 +64,42 @@ class AdalineSGD:
             for xi, target in zip(X, y):
                 loss = self._update_weights(xi, target)
                 losses.append(loss)
+            # Calcula a perda média para esta época
+            avg_loss = np.mean(losses)
+            self.losses_.append(avg_loss)
         return self
 
-    def partial_fit(self, X: np.array, y:np.array) -> 'Perceptron':
-        """ Ajusta os dados sem reinicializar os pesos """
+    def partial_fit(self, X: np.array, y:np.array) -> 'AdalineSGD':
+        """
+        Ajusta os dados sem reinicializar os pesos
+        Útil para aprendizado online com dados em streaming
+        """
         if not self.w_initialized:
-            # supoe que nao foi inicializado os pesos
+            # Se os pesos não foram inicializados, inicializa-os
             self._initialize_weights(X.shape[1])
+            self.losses_ = []
+
         # ravel achata o array
-        # fornece o numero de elementos no array, idependente das dimensoes e formato
+        # fornece o numero de elementos no array, independente das dimensoes e formato
         if y.ravel().shape[0] > 1:
+            # Múltiplos exemplos - processa um por um
+            losses = []
             for xi, target in zip(X, y):
-                self._update_weights(xi, target)
+                loss = self._update_weights(xi, target)
+                losses.append(loss)
+            avg_loss = np.mean(losses)
+            self.losses_.append(avg_loss)
         else:
-            self._update_weights(X, y)
+            # Apenas um exemplo - atualiza diretamente
+            loss = self._update_weights(X.ravel(), y.ravel()[0])
+            self.losses_.append(loss)
         return self
 
-    def _shuffle(self, X: np.array, y: np.array ,) -> tuple[np.array, np.array]:
+    def _shuffle(self, X: np.array, y: np.array) -> tuple[np.array, np.array]:
         """ Embaralha os dados de treinamento """
         r = self.rgen_.permutation(len(y))
         return X[r], y[r]
 
-    # ja era feito na classe Perceptron, mas agora virou uma funcao separada
     def _initialize_weights(self, m: int) -> None:
         """ Inicializa os pesos com zeros """
         self.rgen_ = np.random.RandomState(self.random_state)
@@ -96,16 +108,16 @@ class AdalineSGD:
         self.w_initialized = True
 
     def _update_weights(self, xi: np.array, target: float) -> float:
-        """ Atualiza os pesos para um unico exemplo de treinamento """
+        """ Atualiza os pesos para um único exemplo de treinamento """
         # calcula a saida da rede
         output = self.net_input(xi)
         # calcula o erro
         error = (target - output)
-        # atualiza os pesos
-        self.w_ += self.eta * xi.dot(error)
-        self.b_ += self.eta * error
-        # calcula o erro quadratico medio
-        loss = 0.5 * (error**2)
+        # atualiza os pesos (SGD - usa apenas um exemplo)
+        self.w_ += self.eta * 2.0 * error * xi  # Gradiente para pesos
+        self.b_ += self.eta * 2.0 * error       # Gradiente para bias
+        # calcula o erro quadrático
+        loss = error**2
         return loss
         
     def net_input(self, X: np.array) -> np.ndarray:
@@ -119,5 +131,5 @@ class AdalineSGD:
         return X
 
     def predict(self, X: np.array) -> np.ndarray:
-        """ Simula a função delta """
-        return np.where(self.activation(self.net_input(X) >= 0.5, 1, 0))
+        """ Retorna o rótulo da classe após o passo unitário """
+        return np.where(self.activation(self.net_input(X)) >= 0.0, 1, -1)
